@@ -82,7 +82,7 @@ class ControlWindow:
 
         self.child_list = {}
 
-    def connect_server(self):
+    def connect_server(self, event=None):
         """Conectar con el servidor, validando que la conexion sea posible
         """
         if self.my_client_name.get() != "":
@@ -99,7 +99,7 @@ class ControlWindow:
             self.connect_server_button.config(state="disabled")
             self.connect_client_button.config(state="normal")
 
-    def configure_secure_layer(self):
+    def configure_secure_layer(self, event=None):
         """Funcion para habilitar un canal seguro
         """
         global key
@@ -171,7 +171,7 @@ class ComunicationWindow:
         self.send_file_button.pack()
         self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-    def on_closing(self):
+    def on_closing(self, event=None):
         """Funcion para el cierre de la ventana de comunicacion"""
         global continue_receiving
         self.parent.connect_server_button.config(state="normal")
@@ -181,7 +181,7 @@ class ComunicationWindow:
         del self.parent.child_list[self.client_to]
         continue_receiving = False
 
-    def send(self):
+    def send(self, event=None):
         msg = self.my_msg.get()
         self.my_msg.set("")
         if msg == "{quit}":
@@ -209,7 +209,7 @@ class ComunicationWindow:
                 bytes(self.client_to+"|"+self.my_name+"|"+msg, "utf8"))
             self.msg_list.insert(tkinter.END, self.my_name+": "+msg)
 
-    def send_file(self):
+    def send_file(self, event=None):
         self.master.filename = filedialog.askopenfilename(
             initialdir="/", title="Select file",
             filetypes=(("jpeg files", "*.jpg"),
@@ -248,8 +248,8 @@ def receive(app):
                     msg = msg_decoded[1]+": " + msg
 
                 if app.is_client_connected is True:
-                    for child in app.child_list.values():
-                        child.msg_list.insert(tkinter.END, msg)
+                    app.child_list[msg_decoded[1]].msg_list.insert(
+                        tkinter.END, msg)
 
             # comprobar si es que es un mensaje de broadcast
             elif msg_decoded[0] == "broadcast" and msg_decoded[1] != my_name\
