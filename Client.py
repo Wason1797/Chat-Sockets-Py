@@ -26,7 +26,7 @@ my_msg = tkinter.StringVar()
 connect_server_button = ""
 connect_client_button = ""
 # Nombres para la comunicacion
-client_from = ""
+client_for = ""
 my_name = ""
 # Listas para mensajes y usuarios
 msg_list = ""
@@ -38,15 +38,17 @@ client_connected = None
 is_broadcast = None
 is_secure = None
 
+other_client_list = set()
+
 
 def receive():
     """Funcion que maneja los mensajes recividos"""
-    global client_from
     global continue_receiving
     while continue_receiving:
         try:
             msg = client_socket.recv(BUFSIZE).decode("utf8")
             msg_decoded = msg.split('|')
+            print("Mensaje recivido: ")
             print(msg_decoded)
             # comprobar si es el usuario indicado
             if msg_decoded[0] == my_name:
@@ -60,7 +62,9 @@ def receive():
                     msg_list.insert(tkinter.END, msg_decoded[1]+": " +
                                     msg)
             # comprobar si es que es un mensaje de broadcast
-            elif msg_decoded[0] == "broadcast" and msg_decoded[1] != my_name:
+            elif msg_decoded[0] == "broadcast" and msg_decoded[1] != my_name\
+                    and is_broadcast is True:
+
                 msg_list.insert(
                     tkinter.END, "Mensaje Broadcast de: "
                     + msg_decoded[1]+": "+msg_decoded[2])
@@ -84,8 +88,6 @@ def receive():
                 users_list.insert(tkinter.END, msg_decoded[1])
         except OSError:  # Manejo de excepciones.
             break
-
-            # TODO make condition to accept files
 
 
 def on_closing(event=None):
@@ -116,10 +118,12 @@ def send(event=None):
         # comprobamos si enviamos un mensaje encriptado
         msg_list.insert(tkinter.END, my_name+": "+msg)
         msg = cr.encrypt(msg, key).decode("utf-8")
-        client_socket.send(bytes(client_from+"|"+my_name+"|"+msg, "utf8"))
+        clients_to_send = "|".join(other_client_list)
+        print(clients_to_send)
+        client_socket.send(bytes(clients_to_send+"|"+my_name+"|"+msg, "utf8"))
     # enviamos un mensaje normal
     else:
-        client_socket.send(bytes(client_from+"|"+my_name+"|"+msg, "utf8"))
+        client_socket.send(bytes(client_for+"|"+my_name+"|"+msg, "utf8"))
         msg_list.insert(tkinter.END, my_name+": "+msg)
 
 
@@ -132,7 +136,7 @@ def send_file():
     print(file_name)
     f = open(file_name, 'rb')
     chunk = f.read(1024)
-    client_socket.send(bytes("file|"+client_from+"|" +
+    client_socket.send(bytes("file|"+client_for+"|" +
                              file_name.split('/')[-1], "utf8"))
     while (chunk):
         client_socket.send(chunk)
@@ -145,10 +149,10 @@ def send_file():
 def create_comunication_gui(client_name, client_to):
     """Función para crear la interfaz secundaria de comunicación
     """
-    global client_from, my_name, com_window, msg_list
+    global client_for, my_name, com_window, msg_list
     my_name = client_name
     print(client_name + " a "+client_to)
-    client_from = client_to
+    client_for = client_to
     com_window = tkinter.Toplevel(top)
     com_window.title(client_name + " a "+client_to)
     messages_frame = tkinter.Frame(com_window)
@@ -198,7 +202,8 @@ def connect_client():
             "No se ha especificado el destinatario y el usuario")
     elif client_connected is True:
         global connect_client_button
-        connect_client_button.config(state="disabled")
+        other_client_list.add(new_client_name.get())
+        # connect_client_button.config(state="disabled")
         create_comunication_gui(my_client_name.get(), new_client_name.get())
     else:
         messagebox.showerror(

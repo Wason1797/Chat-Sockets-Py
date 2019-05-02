@@ -50,16 +50,32 @@ def handle_client(client):
             broadcast(bytes(decoded_msg[1]+"|"+name+"|"
                             + "File Sent: "+decoded_msg[2], "utf-8"))
             send_file_to_client(client, decoded_msg[1], decoded_msg[2])
-        elif msg != bytes("{quit}", "utf8"):
-            broadcast(msg)
+        elif decoded_msg[0] != "{quit}":
+            if decoded_msg[0] == "broadcast":
+                broadcast(msg)
+            else:
+                send_message_to_clients(msg)
         else:
             client.close()
             del clients[client]
+            del aux_clients[name]
             msg = "serverupdt|%s Se ha ido, ista de clientes." % name
             msg_user_list = str(list(clients.values()))
             msg = msg+" listado de usuarios: "+msg_user_list
             broadcast(bytes(msg, "utf8"))
             break
+
+
+def send_message_to_clients(message):
+    message = message.decode("utf8").split("|")
+    userlist = message[:-2]
+    print(userlist)
+    for client in userlist:
+        if client in aux_clients:
+            client_to = aux_clients[client]
+            msg = client+"|" + message[-2]+"|"+message[-1]
+            print(msg)
+            client_to.send(bytes(msg, "utf-8"))
 
 
 def send_file_to_client(current, _client, file_name_format):
